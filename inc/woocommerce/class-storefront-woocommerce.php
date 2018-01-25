@@ -24,24 +24,49 @@ if ( ! class_exists( 'Storefront_WooCommerce' ) ) :
 		 * @since 1.0
 		 */
 		public function __construct() {
-			add_filter( 'body_class', 								array( $this, 'woocommerce_body_class' ) );
-			add_action( 'wp_enqueue_scripts', 						array( $this, 'woocommerce_scripts' ),	20 );
-			add_filter( 'woocommerce_enqueue_styles', 				'__return_empty_array' );
+			add_action( 'after_setup_theme',                        array( $this, 'setup' ), 12 );
+			add_filter( 'body_class',                               array( $this, 'woocommerce_body_class' ) );
+			add_action( 'wp_enqueue_scripts',                       array( $this, 'woocommerce_scripts' ), 20 );
+			add_filter( 'woocommerce_enqueue_styles',               '__return_empty_array' );
 			add_filter( 'woocommerce_output_related_products_args', array( $this, 'related_products_args' ) );
-			add_filter( 'woocommerce_product_thumbnails_columns', 	array( $this, 'thumbnail_columns' ) );
-			add_filter( 'loop_shop_per_page', 						array( $this, 'products_per_page' ) );
+			add_filter( 'woocommerce_product_thumbnails_columns',   array( $this, 'thumbnail_columns' ) );
+			add_filter( 'loop_shop_per_page',                       array( $this, 'products_per_page' ) );
 			add_filter( 'woocommerce_breadcrumb_defaults',          array( $this,'change_breadcrumb_delimiter' ) );
 
 			if ( defined( 'WC_VERSION' ) && version_compare( WC_VERSION, '2.5', '<' ) ) {
-				add_action( 'wp_footer', 							array( $this, 'star_rating_script' ) );
+				add_action( 'wp_footer',                            array( $this, 'star_rating_script' ) );
 			}
 
 			// Integrations.
-			add_action( 'wp_enqueue_scripts', 						array( $this, 'woocommerce_integrations_scripts' ), 99 );
+			add_action( 'wp_enqueue_scripts',                       array( $this, 'woocommerce_integrations_scripts' ), 99 );
 			add_action( 'wp_enqueue_scripts',                       array( $this, 'add_customizer_css' ), 140 );
 
 			add_action( 'after_switch_theme',                       array( $this, 'set_storefront_style_theme_mods' ) );
 			add_action( 'customize_save_after',                     array( $this, 'set_storefront_style_theme_mods' ) );
+		}
+
+		/**
+		 * Sets up theme defaults and registers support for various WooCommerce features.
+		 *
+		 * @since 2.X.X @todo update version number
+		 * @return void
+		 */
+		public function setup() {
+			add_theme_support( 'woocommerce', apply_filters( 'storefront_woocommerce_args', array(
+				'single_image_width'    => $this->get_single_image_width(),
+				'thumbnail_image_width' => $this->get_thumbnail_image_width(),
+				'product_grid'          => array(
+					'default_columns' => 3,
+					'default_rows'    => 4,
+					'min_columns'     => 1,
+					'max_columns'     => 6,
+					'min_rows'        => 1
+				)
+			) ) );
+
+			add_theme_support( 'wc-product-gallery-zoom' );
+			add_theme_support( 'wc-product-gallery-lightbox' );
+			add_theme_support( 'wc-product-gallery-slider' );
 		}
 
 		/**
@@ -400,6 +425,42 @@ if ( ! class_exists( 'Storefront_WooCommerce' ) ) :
 			}
 
 			return apply_filters( 'storefront_customizer_woocommerce_extension_css', $woocommerce_extension_style );
+		}
+
+		/**
+		 * Get single image size
+         *
+		 * @since 2.X.X @todo update version number
+		 * @return int image size
+		 */
+		public function get_single_image_width() {
+			$size = 416;
+
+			if ( is_active_sidebar( 'sidebar-1' ) ) {
+				$size = 324;
+			}
+
+			return absint( apply_filters( 'storefront_single_image_width', $size ) );
+		}
+
+		/**
+		 * Get thumbnail size
+         *
+		 * @since 2.X.X @todo update version number
+		 * @return int image size
+		 */
+		public function get_thumbnail_image_width() {
+			$layout            = 1148; // ~ size of the container in px
+			$grid_columns      = 12; // number of columns in grid
+			$thumbnail_columns = 12; // number of columns available for thumbnails
+
+			if ( is_active_sidebar( 'sidebar-1' ) ) {
+				$thumbnail_columns = 8;
+			}
+
+			$size = ( ( $layout / $grid_columns ) * $thumbnail_columns ) / storefront_loop_columns();
+
+			return absint( apply_filters( 'storefront_thumbnail_image_width', $size ) );
 		}
 	}
 
